@@ -2,41 +2,25 @@
 
 namespace fs = std::filesystem;
 
-static int num_field = 0;
-
-int MyGetLine(std::wifstream& readfile, std::wstring& read_to_wstr)
-{
-	std::getline(readfile, read_to_wstr);
-	++num_field;
-	return num_field;
-}
-
-void Copy_WStr(std::wstring::iterator first, std::wstring::iterator last, std::wstring& dst)
-{
-	auto end = last;
-	++end;
-	while (first != end)
-	{
-		dst.push_back(*first);
-		++first;
-	}
-}
-
 void Search_And_Copy_WStr(const int pos_start, const int pos_end, std::wstring& source, std::wstring& dest)
 {
 	dest.erase();
-	auto ptr_id_1 = source.begin();
-	ptr_id_1 += pos_start;
-	auto ptr_id_2 = source.begin();
-	ptr_id_2 += pos_end;
-	Copy_WStr(ptr_id_1, ptr_id_2, dest);
+	auto it_first = source.begin();
+	it_first += pos_start;
+	auto it_second = source.begin();
+	it_second += (pos_end + 1);
+
+	while (it_first != it_second)
+	{
+		dest.push_back(*it_first);
+		++it_first;
+	}
 }
-// Объеденить все 3 функции Get в одну
+
 void Get_WText_Chain(std::wstring& source, std::wstring& dest)
 {
 	int pos_start_col = source.find(L"<tr><td>");
 	int pos_start_text = source.find(L"</td><td>", pos_start_col);
-	//int pos_end_text = source.find("</td></tr>");
 	if (pos_start_text != (-1))
 	{
 		Search_And_Copy_WStr(pos_start_col + 8, pos_start_text - 1, source, dest);
@@ -45,7 +29,6 @@ void Get_WText_Chain(std::wstring& source, std::wstring& dest)
 
 void Get_WText_Col(std::wstring& source, std::wstring& dest)
 {
-	//int pos_start_col = source.find(L"<tr><td>");
 	int pos_start_text = source.find(L"</td><td>");
 	int pos_end_text = source.find(L"</td></tr>", pos_start_text);
 	if (pos_start_text != (-1))
@@ -64,7 +47,7 @@ void Get_WText_Head(std::wstring& source, std::wstring& dest)
 	}
 }
 
-void Get_WText_T1(std::wstring& source, std::wstring& dest)
+void Get_WText_Col4(std::wstring& source, std::wstring& dest)		// Для 2350, вынимаем значение 4го столбца ("Отключен")
 {
 	int count = 0;
 	int pos_start = source.find(L"</td><td>");
@@ -101,7 +84,6 @@ void WriteInFinalyArray(std::map<int, std::wstring>& temp_array, std::vector<std
 			}
 		}
 	}
-	///// Конец формирования информации для конечной записи
 	for (auto ptr4 = temp_array.begin(); ptr4 != temp_array.end(); ++ptr4)	// Конечная запись сформированной информации
 	{
 		final_array_text.insert(std::make_pair(ptr4->first, ptr4->second));
@@ -116,8 +98,8 @@ void Find_For_2056(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 		std::wstring write_wstr;
 		while (true)
 		{
-			int num_field = MyGetLine(rfile, read_wstr);
-			if (read_wstr.find(L"</table>") != (-1))	// Если тело раздела кончилось, прерываем цикл
+			std::getline(rfile, read_wstr);
+			if (read_wstr.find(L"</table>") != (-1))		// Если тело раздела кончилось, прерываем цикл
 			{
 				break;
 			}
@@ -129,19 +111,20 @@ void Find_For_2056(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 					{
 						break;											// Выходим из цикла
 					}
-					int num_pos = 0;		// Для формирования временного массива с повторяющимися полями
+					int num_pos = 0;						// Для формирования временного массива с повторяющимися полями
 					// Перебираем массив наименований полей привязанный к определенному id
 					for (auto ptr1 = ptr->m_need_field.begin(); ptr1 != ptr->m_need_field.end(); ++ptr1)
 					{
-						if (read_wstr.find(ptr1->c_str()) != (-1))	// Ищем имя поля из массива в текущей строке
+						if (read_wstr.find(ptr1->c_str()) != (-1))		// Ищем имя поля из массива в текущей строке
 						{
-							Get_WText_Col(read_wstr, write_wstr);	// Если нашли то вынимаем вторую часть поля("Значение")
+
+							Get_WText_Col(read_wstr, write_wstr);		// Если нашли то вынимаем вторую часть поля("Значение")
 							// и записываем ее во временный массив массив с привязкой к позиции(для повторяющихся полей, например если несколько планок ОЗУ)
 							array_string.push_back(std::make_pair(ptr->m_position[num_pos], write_wstr));
 						}
 						++num_pos;
 					}
-					MyGetLine(rfile, read_wstr);
+					std::getline(rfile, read_wstr);
 				}
 			}
 		}
@@ -155,12 +138,11 @@ void Find_For_Test(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 	std::wstring write_wstr;
 	while (true)
 	{
-
-		if (read_wstr.find(L"</table>") != (-1))	// Если тело раздела кончилось, прерываем цикл
+		if (read_wstr.find(L"</table>") != (-1))			// Если тело раздела кончилось, прерываем цикл
 		{
 			break;
 		}
-		int num_field = MyGetLine(rfile, read_wstr);
+		std::getline(rfile, read_wstr);
 		if (read_wstr.find(L"<tr><td class='h'>") != (-1))
 		{
 			while (true)
@@ -181,7 +163,7 @@ void Find_For_Test(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 					}
 					++num_pos;
 				}
-				MyGetLine(rfile, read_wstr);
+				std::getline(rfile, read_wstr);
 			}
 		}
 	}
@@ -199,7 +181,7 @@ void Find_For_2055(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 		{
 			break;
 		}
-		MyGetLine(rfile, read_wstr);
+		std::getline(rfile, read_wstr);
 		if (read_wstr.find(L"<tr><td class='h'>") != (-1))
 		{
 			Get_WText_Head(read_wstr, write_wstr);
@@ -216,12 +198,11 @@ void Find_For_2201(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 	std::wstring write_wstr;
 	while (true)
 	{
-
-		if (read_wstr.find(L"</table>") != (-1))	// Если тело раздела кончилось, прерываем цикл
+		if (read_wstr.find(L"</table>") != (-1))			// Если тело раздела кончилось, прерываем цикл
 		{
 			break;
 		}
-		int num_field = MyGetLine(rfile, read_wstr);
+		std::getline(rfile, read_wstr);
 		if (read_wstr.find(L"<tr><td class='h'>") != (-1))	// Если начало подраздела
 		{
 			if (read_wstr.find(L"<tr><td class='h'>&nbsp") == (-1))	// Если это точно начало подраздела(а не его конец)
@@ -247,7 +228,7 @@ void Find_For_2201(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 					}
 					++num_pos;
 				}
-				MyGetLine(rfile, read_wstr);
+				std::getline(rfile, read_wstr);
 			}
 		}
 	}
@@ -261,27 +242,26 @@ void Find_For_2350(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 	std::wstring write_wstr;
 	while (true)
 	{
-		if (read_wstr.find(L"</table>") != (-1))	// Если тело раздела кончилось, прерываем цикл
+		if (read_wstr.find(L"</table>") != (-1))			// Если тело раздела кончилось, прерываем цикл
 		{
 			break;
 		}
-		int num_field = MyGetLine(rfile, read_wstr);
+		std::getline(rfile, read_wstr);
 		if (read_wstr.find(L"<tr><td class='c'>") != (-1))
 		{
 			while (true)
 			{
-				MyGetLine(rfile, read_wstr);
+				std::getline(rfile, read_wstr);
 				if (read_wstr.find(L"</table>") != (-1))	// Если тело раздела кончилось, прерываем цикл
 				{
 					break;
 				}
-				Get_WText_T1(read_wstr, write_wstr);		// Вынимаем значение 4го столбца ("Отключен")
+				Get_WText_Col4(read_wstr, write_wstr);		// Вынимаем значение 4го столбца ("Отключен")
 				if (write_wstr.find(L"Нет") != (-1))		// Если значение "Нет"
 				{
 					Get_WText_Chain(read_wstr, write_wstr);									// Вынимаем имя пользователя...
 					array_string.push_back(std::make_pair(ptr->m_position[0], write_wstr));	// ...и записываем в массив
-				}
-				
+				}		
 			}
 		}
 	}
@@ -295,11 +275,11 @@ void Find_For_2311(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 	std::wstring write_wstr;
 	while (true)
 	{
-		if (read_wstr.find(L"</table>") != (-1))	// Если тело раздела кончилось, прерываем цикл
+		if (read_wstr.find(L"</table>") != (-1))			// Если тело раздела кончилось, прерываем цикл
 		{
 			break;
 		}
-		int num_field = MyGetLine(rfile, read_wstr);
+		std::getline(rfile, read_wstr);
 		if (read_wstr.find(L"<tr><td class='c'>") != (-1))
 		{
 			while (true)
@@ -310,7 +290,7 @@ void Find_For_2311(std::wifstream& rfile, std::wstring& read_wstr, std::map<int,
 				}
 				Get_WText_Chain(read_wstr, write_wstr);									// Вынимаем имя пользователя...
 				array_string.push_back(std::make_pair(ptr->m_position[0], write_wstr));	// ...и записываем в массив
-				MyGetLine(rfile, read_wstr);
+				std::getline(rfile, read_wstr);
 			}
 		}
 	}
@@ -329,8 +309,7 @@ int main(void)
 	//const std::wstring dir(L"C:\\Users\\Administrator\\Desktop\\dng1");							// Начальная дирректория
 	std::wstring current_path(fs::current_path().wstring());
 	const std::wstring dir(current_path);														// Начальная дирректория
-	//const wchar_t WRITE_FILE_PATH[] = L"C:\\Users\\Administrator\\Desktop\\dng1\\test.txt";		// -----------Удалить после объединения
-	const std::wstring WRITE_FILE_PATH(current_path + L"\\parser.txt");		// -----------Удалить после объединения
+	const std::wstring WRITE_FILE_PATH(current_path + L"\\parser.txt");							// Имя итогового файл, в текущей дирректории
 	
 	// ----------------------Перебор дирректорий и поиск файлов для парсинга----------------------------------------------------
 	std::vector<std::filesystem::path> subdirs;
@@ -408,18 +387,10 @@ int main(void)
 			}
 		}
 	}
-
-	//for (auto ptr_path = object_file_name_dir.begin(); ptr_path != object_file_name_dir.end(); ++ptr_path)	//-----------Удалить
-	//{
-	//	std::wcout << ptr_path->m_workshop << L'\t' << ptr_path->m_object << L'\n';
-	//}
-
 	// --------------------------------------------------------------------------------------------------------------------------
 	// ----------------------------------------Парсинг файла---------------------------------------------------------------------
 	for (auto ptr_path = object_file_name_dir.begin(); ptr_path != object_file_name_dir.end(); ++ptr_path)
 	{
-		//system("cls");									//------------Удалить
-		//num_field = 0;									//------------Удалить
 		std::wcout << ptr_path->m_file_path << L'\n';
 
 		std::vector<std::wstring> menu;						// Массив (для формирования оглавления)
@@ -427,14 +398,13 @@ int main(void)
 		std::wstring read_wstr;								// сюда будем класть считанные из файла строки
 		std::wstring write_wstr;							// сюда будем класть строки перед записью в файл	
 		// -----------------------------------Загрузка "оглавления" из файла-----------------------------------------------------
-		rfile.open(ptr_path->m_file_path);	// файл из которого читаем (для линукс путь будет выглядеть по другому)
+		rfile.open(ptr_path->m_file_path);								// файл из которого читаем (для линукс путь будет выглядеть по другому)
 		rfile.imbue(std::locale(std::locale::empty(), new std::codecvt_utf8<wchar_t>));
 		while (!rfile.eof())
 		{
 			std::getline(rfile, read_wstr);
 			int pos_id_start = read_wstr.find(L"<li><a href='#i");		// Для расчета начала id
 			int pos_id_end = read_wstr.find(L"'>");						// Для рассчета начала наименования раздела
-			//int pos_end_name = read_string.find("</a></li>");			// Для рассчета окончания наименования раздела
 
 			//Вставка наименования раздела
 			if (pos_id_start != (-1))
@@ -458,7 +428,6 @@ int main(void)
 			}
 		}
 		rfile.close();
-		// ----------------------------------------------------------------------------------------------------------------------
 		// --------------------------------------Сбор информации и запись в файл-------------------------------------------------
 		rfile.open(ptr_path->m_file_path);
 		wfile.open(WRITE_FILE_PATH, std::ios::app);
@@ -470,7 +439,7 @@ int main(void)
 			while (!rfile.eof())
 			{
 				read_wstr.erase();
-				MyGetLine(rfile, read_wstr);								//-------------Переделать
+				std::getline(rfile, read_wstr);
 
 				auto pos_header_start = read_wstr.find(L"<h2 id='i");		// Ищем начало id заголовка
 				if (pos_header_start != (-1))								// Если начало заголовка найдено
@@ -482,39 +451,34 @@ int main(void)
 					{
 						if (write_wstr.find(ptr->m_id.c_str()) != (-1))		// Перебираем массив и ищем совпадение id
 						{
-							MyGetLine(rfile, read_wstr);					//-------------Переделать
+							std::getline(rfile, read_wstr);
 							if (read_wstr.find(L"<table") != (-1))			// Начало тела раздела
 							{
 								if (ptr->m_id.find(L"2056") != (-1))		// Если раздел "Устройства памяти" - оперативка
 								{
 									Find_For_2056(rfile, read_wstr, final_array_text, ptr, object_file_name_dir);
-									write_wstr.erase();
 								}
 								else if (ptr->m_id.find(L"2055") != (-1))	// Если раздел "Процессоры"
 								{
 									Find_For_2055(rfile, read_wstr, final_array_text, ptr, object_file_name_dir);
-									write_wstr.erase();
 								}
 								else if (ptr->m_id.find(L"2201") != (-1))	// Сетевые адаптеры
 								{
 									Find_For_2201(rfile, read_wstr, final_array_text, ptr, object_file_name_dir);
-									write_wstr.erase();
 								}
 								else if (ptr->m_id.find(L"2350") != (-1))	// Пользователи
 								{
 									Find_For_2350(rfile, read_wstr, final_array_text, ptr, object_file_name_dir);
-									write_wstr.erase();
 								}
 								else if (ptr->m_id.find(L"2311") != (-1))	// Активные сесии
 								{
 									Find_For_2311(rfile, read_wstr, final_array_text, ptr, object_file_name_dir);
-									write_wstr.erase();
 								}
 								else
 								{
 									Find_For_Test(rfile, read_wstr, final_array_text, ptr, object_file_name_dir);
-									write_wstr.erase();
 								}
+								write_wstr.erase();
 							}
 						}
 					}
@@ -536,14 +500,9 @@ int main(void)
 							check = true;
 							continue;
 						}
-						//else if (!check)
-						//{
-						//	ptr->second.pop_back();
-						//}
 						if (check)
 							break;
 					}
-
 					break;
 				}
 				while (true)												// Удаляем запятые в начале строки
@@ -581,16 +540,14 @@ int main(void)
 				bool check = false;
 				for (auto ptr_temp = int_array.begin(); ptr_temp != int_array.end(); ++ptr_temp)
 				{
-					//int empty_num = -1;
 					if ((*ptr_temp) == i)
-						check == true;
+						check = true;
 				}
 				if (!check)
 				{
 					final_array_text.insert(std::make_pair(i, L"-"));
 				}
 			}
-
 			//---------------------------------------------Запись в файл----------------------------------------------------------
 			bool is_empty = true;
 			int count = 0;
